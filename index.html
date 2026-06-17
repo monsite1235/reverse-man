@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Reverse Pac-Man - Arcade Edition</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050510;
+            font-family: 'Courier New', Courier, monospace;
+            color: white;
+        }
+        
+        /* NOUEAU MENU STYLE ARCADE */
+        #menu {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, #0c0c28 0%, #03030a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            padding: 20px;
+        }
+        .menu-card {
+            background: rgba(15, 15, 40, 0.85);
+            border: 4px solid #1919a6;
+            box-shadow: 0 0 25px #1919a6;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 450px;
+            width: 100%;
+        }
+        h1 {
+            color: #ff3333;
+            font-size: clamp(32px, 5vw, 52px);
+            font-weight: 900;
+            text-shadow: 0 0 10px #ff3333, 3px 3px 0px #1919a6;
+            margin: 0 0 10px 0;
+            letter-spacing: 2px;
+        }
+        .subtitle {
+            font-size: clamp(13px, 2.5vw, 15px);
+            color: #00ffff;
+            margin-bottom: 35px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .menu-label {
+            font-size: 16px;
+            color: #fff;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        /* BOUTON TOGGLE MULTIJOUEUR */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            background: rgba(25, 25, 166, 0.2);
+            padding: 10px;
+            border-radius: 30px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        .toggle-label {
+            font-size: 16px;
+            font-weight: bold;
+            color: #00ffff;
+            letter-spacing: 1px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #222;
+            transition: .4s;
+            border-radius: 34px;
+            border: 2px solid #1919a6;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #fff;
+        }
+        input:checked + .slider {
+            background-color: #ff3333;
+            border-color: #ff3333;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+            box-shadow: 0 0 8px #ff3333;
+        }
+
+        .btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        button {
+            background: linear-gradient(135deg, #1919a6 0%, #0d0d5c 100%);
+            color: white;
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+            padding: 14px 20px;
+            font-size: 18px;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: linear-gradient(135deg, #ff3333 0%, #990000 100%);
+            border-color: #ffffff;
+            box-shadow: 0 0 15px #ff3333;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(1px);
+        }
+
+        /* INTERFACE EN JEU */
+        #ui {
+            position: absolute;
+            top: 15px;
+            left: 70px;
+            font-size: clamp(16px, 4vw, 22px);
+            font-weight: bold;
+            pointer-events: none;
+            text-shadow: 2px 2px 2px black;
+            z-index: 5;
+            line-height: 35px;
+        }
+
+        /* BOUTON FLÈCHE RETOUR (EN HAUT À GAUCHE) */
+        #back-to-menu-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(25, 25, 166, 0.7);
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 6;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+        #back-to-menu-btn:hover {
+            background-color: #ff3333;
+            box-shadow: 0 0 10px #ff3333;
+            border-color: #fff;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #aaa;
+            font-size: 14px;
+            text-align: center;
+            pointer-events: none;
+            z-index: 5;
+            width: 90%;
+        }
+        canvas {
+            display: block;
+        }
+
+        /* MANETTES VIRTUELLES MOBILE */
+        .mobile-pad {
+            display: none;
+            position: absolute;
+            bottom: 30px;
+            width: 150px;
+            height: 150px;
+            z-index: 8;
+        }
+        /* Position joueur 1 (Bas gauche si multi, sinon centré via JS) */
+        #mobile-controls-p1 {
+            left: 30px;
+        }
+        /* Position joueur 2 (Bas droite) */
+        #mobile-controls-p2 {
+            right: 30px;
+        }
+        .dpad-btn {
+            position: absolute;
+            background-color: rgba(25, 25, 166, 0.6);
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            color: white;
+            width: 46px;
+            height: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 10px;
+            touch-action: manipulation;
+        }
+        .dpad-btn:active {
+            background-color: rgba(255, 0, 0, 0.8);
+        }
+        
+        /* Ajustements des boutons à l'intérieur du pad de 150px */
+        .btn-up    { top: 0; left: 52px; }
+        .btn-left  { top: 52px; left: 0; }
+        .btn-right { top: 52px; right: 0; }
+        .btn-down  { bottom: 0; left: 52px; }
+
+        /* Changement de couleur de bordure pour différencier le J2 */
+        #mobile-controls-p2 .dpad-btn {
+            border-color: #00ffff;
+            background-color: rgba(13, 13, 92, 0.6);
+        }
+        #mobile-controls-p2 .dpad-btn:active {
+            background-color: rgba(0, 255, 255, 0.8);
+        }
+    </style>
+</head>
+<body>
+
+<div id="menu">
+    <div class="menu-card">
+        <h1>REVERSE PAC-MAN</h1>
+        <div class="subtitle">Incarne le fantôme rouge</div>
+        
+        <div class="toggle-container">
+            <span class="toggle-label">MODE MULTI (2J)</span>
+            <label class="switch">
+                <input type="checkbox" id="multiplayer-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="menu-label">SÉLECTIONNE LA DIFFICULTÉ</div>
+        <div class="btn-container">
+            <button onclick="startGame(1)">NIVEAU 1 : LENT</button>
+            <button onclick="startGame(2)">NIVEAU 2 : MOYEN</button>
+            <button onclick="startGame(3)">NIVEAU 3 : RAPIDE</button>
+        </div>
+    </div>
+</div>
+
+<div id="back-to-menu-btn" style="display: none;" onclick="returnToMenu()">◀</div>
+
+<div id="ui" style="display: none;">
+    SCORE: <span id="score-display">0</span>
+</div>
+<div id="instructions" style="display: none;">Utilise les **Flèches du clavier** pour diriger le fantôme rouge !</div>
+
+<div id="mobile-controls-p1" class="mobile-pad">
+    <div class="dpad-btn btn-up" id="btn-up">▲</div>
+    <div class="dpad-btn btn-left" id="btn-left">◀</div>
+    <div class="dpad-btn btn-right" id="btn-right">▶</div>
+    <div class="dpad-btn btn-down" id="btn-down">▼</div>
+</div>
+
+<div id="mobile-controls-p2" class="mobile-pad">
+    <div class="dpad-btn btn-up" id="btn-up-p2">Z</div>
+    <div class="dpad-btn btn-left" id="btn-left-p2">Q</div>
+    <div class="dpad-btn btn-right" id="btn-right-p2">D</div>
+    <div class="dpad-btn btn-down" id="btn-down-p2">S</div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let map = [];
+let heatmap = []; 
+let cols, rows;
+let tileSize;
+
+let currentLevel = 1;
+let score = 0;
+let gameRunning = false;
+let gameOver = false;
+let isMobile = false;
+let isMultiplayer = false;
+
+// Personnages
+let ghost = { x: 1, y: 1, color: "red" };
+let ghost2 = { x: 1, y: 1, color: "#00ffff" }; // Fantôme Bleu pour le J2
+let pacman = { x: 1, y: 1, dirX: 0, dirY: 0, speedTimer: 0, speedCooldown: 20 };
+
+// Variables pour la fluidité et détection AFK
+let keysPressed = {};
+let ghostMoveTimer = 0;
+const ghostMoveCooldown = 8; 
+let isJ1Moving = false;
+let isJ2Moving = false;
+
+function detectDevice() {
+    isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+}
+
+function initGrid() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    tileSize = isMobile ? 32 : 40; 
+    
+    cols = Math.floor(canvas.width / tileSize);
+    rows = Math.floor(canvas.height / tileSize);
+    if (cols % 2 === 0) cols--;
+    if (rows % 2 === 0) rows--;
+
+    generateRandomMaze();
+}
+
+function generateRandomMaze() {
+    map = [];
+    heatmap = [];
+    
+    for (let r = 0; r < rows; r++) {
+        map[r] = [];
+        heatmap[r] = [];
+        for (let c = 0; c < cols; c++) {
+            map[r][c] = 1;
+            heatmap[r][c] = 0;
+        }
+    }
+
+    let stack = [];
+    let currentCell = { x: 1, y: 1 };
+    map[currentCell.y][currentCell.x] = 0;
+
+    while (true) {
+        let neighbors = [];
+        let dirs = [
+            { x: 0, y: -2 }, { x: 0, y: 2 },
+            { x: -2, y: 0 }, { x: 2, y: 0 }
+        ];
+
+        dirs.forEach(d => {
+            let nx = currentCell.x + d.x;
+            let ny = currentCell.y + d.y;
+            if (nx > 0 && nx < cols - 1 && ny > 0 && ny < rows - 1) {
+                if (map[ny][nx] === 1) {
+                    neighbors.push({ x: nx, y: ny, dir: d });
+                }
+            }
+        });
+
+        if (neighbors.length > 0) {
+            let next = neighbors[Math.floor(Math.random() * neighbors.length)];
+            map[currentCell.y + next.dir.y / 2][currentCell.x + next.dir.x / 2] = 0;
+            map[next.y][next.x] = 0;
+            stack.push(currentCell);
+            currentCell = { x: next.x, y: next.y };
+        } else if (stack.length > 0) {
+            currentCell = stack.pop();
+        } else {
+            break;
+        }
+    }
+
+    for (let i = 0; i < (rows * cols) * 0.05; i++) {
+        let rx = Math.floor(Math.random() * (cols - 2)) + 1;
+        let ry = Math.floor(Math.random() * (rows - 2)) + 1;
+        map[ry][rx] = 0;
+    }
+
+    // Position Joueur 1 (Haut Gauche)
+    ghost.x = 1;
+    ghost.y = 1;
+    
+    // Position Joueur 2 (Bas Droite, à l'opposé de la carte)
+    ghost2.x = cols - 2;
+    ghost2.y = rows - 2;
+    while(map[ghost2.y][ghost2.x] === 1) {
+        ghost2.x--;
+        if(ghost2.x < 1) { ghost2.x = cols - 2; ghost2.y--; }
+    }
+    
+    // On repositionne Pac-Man au centre de la carte pour éviter un contact direct au spawn
+    pacman.x = Math.floor(cols / 2);
+    pacman.y = Math.floor(rows / 2);
+    while(map[pacman.y][pacman.x] === 1) {
+        pacman.x++;
+        if(pacman.x >= cols - 1) { pacman.x = 1; pacman.y++; }
+    }
+}
+
+function startGame(level) {
+    currentLevel = level;
+    detectDevice();
+    
+    keysPressed = {}; 
+    isJ1Moving = false;
+    isJ2Moving = false;
+    
+    // Vérification de l'état du bouton switch multijoueur
+    isMultiplayer = document.getElementById("multiplayer-toggle").checked;
+    
+    document.getElementById("menu").style.display = "none";
+    document.getElementById("ui").style.display = "block";
+    document.getElementById("back-to-menu-btn").style.display = "flex";
+    
+    if (isMobile) {
+        let pad1 = document.getElementById("mobile-controls-p1");
+        pad1.style.display = "block";
+        if (isMultiplayer) {
+            pad1.style.left = "30px";
+            pad1.style.transform = "none";
+            document.getElementById("mobile-controls-p2").style.display = "block";
+        } else {
+            pad1.style.left = "50%";
+            pad1.style.transform = "translateX(-50%)";
+            document.getElementById("mobile-controls-p2").style.display = "none";
+        }
+        document.getElementById("instructions").style.display = "none";
+    } else {
+        document.getElementById("mobile-controls-p1").style.display = "none";
+        document.getElementById("mobile-controls-p2").style.display = "none";
+        let inst = document.getElementById("instructions");
+        inst.style.display = "block";
+        if (isMultiplayer) {
+            inst.innerHTML = "J1 (Rouge) : **Flèches** | J2 (Bleu) : **ZQSD**";
+        } else {
+            inst.innerHTML = "Utilise les **Flèches du clavier** pour diriger le fantôme rouge !";
+        }
+    }
+
+    pacman.speedCooldown = Math.max(5, 22 - (level * 5)); 
+    
+    initGrid();
+    gameRunning = true;
+    gameOver = false;
+    draw();
+}
+
+function moveGhost(dx, dy) {
+    if (!gameRunning || gameOver) return;
+    let nextX = ghost.x + dx;
+    let nextY = ghost.y + dy;
+    if (map[nextY] && map[nextY][nextX] === 0) {
+        ghost.x = nextX;
+        ghost.y = nextY;
+    }
+    checkCollision();
+}
+
+function moveGhost2(dx, dy) {
+    if (!gameRunning || gameOver || !isMultiplayer) return;
+    let nextX = ghost2.x + dx;
+    let nextY = ghost2.y + dy;
+    if (map[nextY] && map[nextY][nextX] === 0) {
+        ghost2.x = nextX;
+        ghost2.y = nextY;
+    }
+    checkCollision();
+}
+
+// Enregistrement des touches enfoncées pour la fluidité optimale
+window.addEventListener("keydown", e => {
+    keysPressed[e.key] = true;
+    
+    if (gameOver && (e.key === " " || e.key === "Enter")) {
+        returnToMenu();
+    }
+});
+
+window.addEventListener("keyup", e => {
+    delete keysPressed[e.key];
+});
+
+// Traitement continu des touches enfoncées
+function handlePlayersInput() {
+    isJ1Moving = false;
+    isJ2Moving = false;
+
+    // Joueur 1
+    if (keysPressed["ArrowUp"]) { moveGhost(0, -1); isJ1Moving = true; }
+    else if (keysPressed["ArrowDown"]) { moveGhost(0, 1); isJ1Moving = true; }
+    else if (keysPressed["ArrowLeft"]) { moveGhost(-1, 0); isJ1Moving = true; }
+    else if (keysPressed["ArrowRight"]) { moveGhost(1, 0); isJ1Moving = true; }
+    
+    // Joueur 2
+    if (keysPressed["z"] || keysPressed["Z"]) { moveGhost2(0, -1); isJ2Moving = true; }
+    else if (keysPressed["s"] || keysPressed["S"]) { moveGhost2(0, 1); isJ2Moving = true; }
+    else if (keysPressed["q"] || keysPressed["Q"]) { moveGhost2(-1, 0); isJ2Moving = true; }
+    else if (keysPressed["d"] || keysPressed["D"]) { moveGhost2(1, 0); isJ2Moving = true; }
+}
+
+// Mobile Tactile - Joueur 1 (Met à jour le statut "actif" pour éviter le comportement AFK)
+document.getElementById("btn-up").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost(0, -1); isJ1Moving = true; });
+document.getElementById("btn-down").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost(0, 1); isJ1Moving = true; });
+document.getElementById("btn-left").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost(-1, 0); isJ1Moving = true; });
+document.getElementById("btn-right").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost(1, 0); isJ1Moving = true; });
+
+// Mobile Tactile - Joueur 2
+document.getElementById("btn-up-p2").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost2(0, -1); isJ2Moving = true; });
+document.getElementById("btn-down-p2").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost2(0, 1); isJ2Moving = true; });
+document.getElementById("btn-left-p2").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost2(-1, 0); isJ2Moving = true; });
+document.getElementById("btn-right-p2").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost2(1, 0); isJ2Moving = true; });
+
+window.addEventListener("touchstart", () => {
+    if (gameOver) returnToMenu();
+});
+
+function returnToMenu() {
+    gameRunning = false;
+    document.getElementById("menu").style.display = "flex";
+    document.getElementById("ui").style.display = "none";
+    document.getElementById("back-to-menu-btn").style.display = "none";
+    document.getElementById("mobile-controls-p1").style.display = "none";
+    document.getElementById("mobile-controls-p2").style.display = "none";
+    document.getElementById("instructions").style.display = "none";
+}
+
+// IA de Pac-Man ajustée pour être plus facile à attraper et gérer l'AFK
+function movePacman() {
+    let directions = [{x: 0, y: -1}, {x: 0, y: 1}, {x: -1, y: 0}, {x: 1, y: 0}];
+    
+    heatmap[pacman.y][pacman.x] += 1;
+
+    let validDirections = directions.filter(d => {
+        let nextX = pacman.x + d.x;
+        let nextY = pacman.y + d.y;
+        return map[nextY] && map[nextY][nextX] === 0;
+    });
+
+    if (validDirections.length > 0) {
+        let forwardDirections = validDirections.filter(d => {
+            return !(d.x === -pacman.dirX && d.y === -pacman.dirY);
+        });
+        let choices = forwardDirections.length > 0 ? forwardDirections : validDirections;
+
+        let bestChoices = [];
+        let minScore = Infinity;
+
+        choices.forEach(d => {
+            let nextX = pacman.x + d.x;
+            let nextY = pacman.y + d.y;
+            
+            let dangerPenalty = 0;
+
+            // Gestion du Joueur 1
+            let distToJ1 = Math.abs(nextX - ghost.x) + Math.abs(nextY - ghost.y);
+            if (!isJ1Moving && nextX === ghost.x && nextY === ghost.y) {
+                // Si le joueur est AFK, la case du joueur devient un obstacle infranchissable pour Pacman
+                dangerPenalty += 9999;
+            } else if (isJ1Moving && distToJ1 <= 3) { 
+                // Si le joueur bouge, rayon réduit à 3 cases (plus facile à attraper)
+                dangerPenalty += (4 - distToJ1) * 15;
+            }
+
+            // Gestion du Joueur 2 (si actif)
+            if (isMultiplayer) {
+                let distToJ2 = Math.abs(nextX - ghost2.x) + Math.abs(nextY - ghost2.y);
+                if (!isJ2Moving && nextX === ghost2.x && nextY === ghost2.y) {
+                    dangerPenalty += 9999;
+                } else if (isJ2Moving && distToJ2 <= 3) {
+                    dangerPenalty += (4 - distToJ2) * 15;
+                }
+            }
+
+            let totalScore = heatmap[nextY][nextX] + dangerPenalty;
+
+            if (totalScore < minScore) {
+                minScore = totalScore;
+                bestChoices = [d];
+            } else if (totalScore === minScore) {
+                bestChoices.push(d);
+            }
+        });
+
+        if (bestChoices.length > 0) {
+            let choice = bestChoices[Math.floor(Math.random() * bestChoices.length)];
+            pacman.dirX = choice.x;
+            pacman.dirY = choice.y;
+        }
+    }
+
+    let nextX = pacman.x + pacman.dirX;
+    let nextY = pacman.y + pacman.dirY;
+
+    if (map[nextY] && map[nextY][nextX] === 0) {
+        pacman.x = nextX;
+        pacman.y = nextY;
+    }
+    checkCollision();
+}
+
+function checkCollision() {
+    if ((ghost.x === pacman.x && ghost.y === pacman.y) || 
+        (isMultiplayer && ghost2.x === pacman.x && ghost2.y === pacman.y)) {
+        score += 100 * currentLevel;
+        document.getElementById("score-display").innerText = score;
+        gameOver = true;
+    }
+}
+
+function draw() {
+    if (!gameRunning) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (map[r][c] === 1) {
+                ctx.fillStyle = "#1919a6";
+                ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
+            }
+        }
+    }
+
+    // Dessiner Pac-Man
+    ctx.fillStyle = "yellow";
+    ctx.beginPath();
+    ctx.arc(pacman.x * tileSize + tileSize/2, pacman.y * tileSize + tileSize/2, tileSize/2 - 3, 0.2 * Math.PI, 1.8 * Math.PI);
+    ctx.lineTo(pacman.x * tileSize + tileSize/2, pacman.y * tileSize + tileSize/2);
+    ctx.fill();
+
+    // Dessiner le Fantôme 1 (Rouge)
+    ctx.fillStyle = ghost.color;
+    ctx.beginPath();
+    ctx.arc(ghost.x * tileSize + tileSize/2, ghost.y * tileSize + tileSize/2, tileSize/2 - 3, Math.PI, 0, false);
+    ctx.lineTo(ghost.x * tileSize + tileSize - 3, ghost.y * tileSize + tileSize - 3);
+    ctx.lineTo(ghost.x * tileSize + 3, ghost.y * tileSize + tileSize - 3);
+    ctx.fill();
+    
+    ctx.fillStyle = "white";
+    ctx.fillRect(ghost.x * tileSize + (tileSize*0.22), ghost.y * tileSize + (tileSize*0.28), tileSize*0.16, tileSize*0.16);
+    ctx.fillRect(ghost.x * tileSize + (tileSize*0.62), ghost.y * tileSize + (tileSize*0.28), tileSize*0.16, tileSize*0.16);
+
+    // Dessiner le Fantôme 2 (Bleu) si le mode multijoueur est actif
+    if (isMultiplayer) {
+        ctx.fillStyle = ghost2.color;
+        ctx.beginPath();
+        ctx.arc(ghost2.x * tileSize + tileSize/2, ghost2.y * tileSize + tileSize/2, tileSize/2 - 3, Math.PI, 0, false);
+        ctx.lineTo(ghost2.x * tileSize + tileSize - 3, ghost2.y * tileSize + tileSize - 3);
+        ctx.lineTo(ghost2.x * tileSize + 3, ghost2.y * tileSize + tileSize - 3);
+        ctx.fill();
+        
+        ctx.fillStyle = "white";
+        ctx.fillRect(ghost2.x * tileSize + (tileSize*0.22), ghost2.y * tileSize + (tileSize*0.28), tileSize*0.16, tileSize*0.16);
+        ctx.fillRect(ghost2.x * tileSize + (tileSize*0.62), ghost2.y * tileSize + (tileSize*0.28), tileSize*0.16, tileSize*0.16);
+    }
+
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = "lime";
+        ctx.font = "bold 24px 'Courier New'";
+        ctx.textAlign = "center";
+        ctx.fillText("BIEN JOUÉ !", canvas.width / 2, canvas.height / 2 - 20);
+        
+        ctx.fillStyle = "white";
+        ctx.font = "16px 'Courier New'";
+        let msg = isMobile ? "Touche l'écran pour rejouer" : "Appuie sur ESPACE pour rejouer";
+        ctx.fillText(msg, canvas.width / 2, canvas.height / 2 + 20);
+        return;
+    }
+
+    // Gestion de l'input fluide des fantômes
+    ghostMoveTimer++;
+    if (ghostMoveTimer >= ghostMoveCooldown) {
+        handlePlayersInput();
+        ghostMoveTimer = 0;
+    }
+
+    pacman.speedTimer++;
+    if (pacman.speedTimer >= pacman.speedCooldown) {
+        movePacman();
+        pacman.speedTimer = 0;
+    }
+
+    requestAnimationFrame(draw);
+}
+
+window.addEventListener("resize", () => {
+    if (gameRunning && !gameOver) {
+        initGrid();
+    }
+});
+</script>
+
+</body>
+</html>
