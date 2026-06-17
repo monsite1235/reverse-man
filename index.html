@@ -549,17 +549,31 @@ function handlePlayersInput() {
     else if (keysPressed["d"] || keysPressed["D"]) { moveGhost2(1, 0); isJ2Moving = true; }
 }
 
-// Mobile Tactile - Joueur 1 (Met à jour le statut "actif" pour éviter le comportement AFK)
-document.getElementById("btn-up").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost(0, -1); isJ1Moving = true; });
-document.getElementById("btn-down").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost(0, 1); isJ1Moving = true; });
-document.getElementById("btn-left").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost(-1, 0); isJ1Moving = true; });
-document.getElementById("btn-right").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost(1, 0); isJ1Moving = true; });
+// Mobile Tactile - Joueur 1 (Maintien de la touche)
+document.getElementById("btn-up").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["ArrowUp"] = true; });
+document.getElementById("btn-up").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["ArrowUp"]; });
 
-// Mobile Tactile - Joueur 2
-document.getElementById("btn-up-p2").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost2(0, -1); isJ2Moving = true; });
-document.getElementById("btn-down-p2").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost2(0, 1); isJ2Moving = true; });
-document.getElementById("btn-left-p2").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost2(-1, 0); isJ2Moving = true; });
-document.getElementById("btn-right-p2").addEventListener("touchstart", (e) => { e.preventDefault(); moveGhost2(1, 0); isJ2Moving = true; });
+document.getElementById("btn-down").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["ArrowDown"] = true; });
+document.getElementById("btn-down").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["ArrowDown"]; });
+
+document.getElementById("btn-left").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["ArrowLeft"] = true; });
+document.getElementById("btn-left").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["ArrowLeft"]; });
+
+document.getElementById("btn-right").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["ArrowRight"] = true; });
+document.getElementById("btn-right").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["ArrowRight"]; });
+
+// Mobile Tactile - Joueur 2 (Maintien de la touche)
+document.getElementById("btn-up-p2").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["z"] = true; });
+document.getElementById("btn-up-p2").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["z"]; });
+
+document.getElementById("btn-down-p2").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["s"] = true; });
+document.getElementById("btn-down-p2").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["s"]; });
+
+document.getElementById("btn-left-p2").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["q"] = true; });
+document.getElementById("btn-left-p2").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["q"]; });
+
+document.getElementById("btn-right-p2").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["d"] = true; });
+document.getElementById("btn-right-p2").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["d"]; });
 
 window.addEventListener("touchstart", () => {
     if (gameOver) returnToMenu();
