@@ -212,7 +212,7 @@
         .mobile-pad {
             display: none;
             position: absolute;
-            bottom: 5%; /* Utilisation de % pour s'adapter à la hauteur de l'écran */
+            bottom: 5%;
             width: 150px;
             height: 150px;
             z-index: 8;
@@ -259,7 +259,7 @@
             background-color: rgba(0, 255, 255, 0.8);
         }
 
-        /* Amélioration de l'espace sur les petits écrans mobiles (mode paysage recommandé pour le 2J) */
+        /* Amélioration de l'espace sur les petits écrans mobiles */
         @media (max-width: 767px) {
             .mobile-pad {
                 width: 120px;
@@ -344,9 +344,17 @@ let gameOver = false;
 let isMobile = false;
 let isMultiplayer = false;
 
+// Variables pour la Super Bille Jane / Pac-Gomme
+let superBille = { x: -1, y: -1, existe: false };
+let pacmanSuperTimer = 0; // Temps restant du pouvoir en frames (60 frames = 1 sec)
+let playerKilledByPacman = false; // Permet de savoir qui a gagné la partie
+
+// CHAMP DE VISION DE PAC-MAN (en nombre de cases)
+const PACMAN_VISION_RANGE = 6; 
+
 // Personnages
 let ghost = { x: 1, y: 1, color: "red" };
-let ghost2 = { x: 1, y: 1, color: "#00ffff" }; // Fantôme Bleu pour le J2
+let ghost2 = { x: 1, y: 1, color: "#00ffff" }; 
 let pacman = { x: 1, y: 1, dirX: 0, dirY: 0, speedTimer: 0, speedCooldown: 20 };
 
 // Variables pour la fluidité et détection AFK
@@ -427,11 +435,9 @@ function generateRandomMaze() {
         map[ry][rx] = 0;
     }
 
-    // Position Joueur 1 (Haut Gauche)
     ghost.x = 1;
     ghost.y = 1;
     
-    // Position Joueur 2 (Bas Droite, à l'opposé de la carte)
     ghost2.x = cols - 2;
     ghost2.y = rows - 2;
     while(map[ghost2.y][ghost2.x] === 1) {
@@ -439,13 +445,22 @@ function generateRandomMaze() {
         if(ghost2.x < 1) { ghost2.x = cols - 2; ghost2.y--; }
     }
     
-    // On repositionne Pac-Man au centre de la carte pour éviter un contact direct au spawn
     pacman.x = Math.floor(cols / 2);
     pacman.y = Math.floor(rows / 2);
     while(map[pacman.y][pacman.x] === 1) {
         pacman.x++;
         if(pacman.x >= cols - 1) { pacman.x = 1; pacman.y++; }
     }
+
+    // Génération de l'unique Super Bille Jane à un endroit vide aléatoire
+    superBille.existe = true;
+    let bX, bY;
+    do {
+        bX = Math.floor(Math.random() * (cols - 2)) + 1;
+        bY = Math.floor(Math.random() * (rows - 2)) + 1;
+    } while (map[bY][bX] === 1 || (bX === pacman.x && bY === pacman.y) || (bX === ghost.x && bY === ghost.y));
+    superBille.x = bX;
+    superBille.y = bY;
 }
 
 function startGame(level) {
@@ -455,8 +470,9 @@ function startGame(level) {
     keysPressed = {}; 
     isJ1Moving = false;
     isJ2Moving = false;
+    pacmanSuperTimer = 0;
+    playerKilledByPacman = false;
     
-    // Vérification de l'état du bouton switch multijoueur
     isMultiplayer = document.getElementById("multiplayer-toggle").checked;
     
     document.getElementById("menu").style.display = "none";
@@ -518,10 +534,8 @@ function moveGhost2(dx, dy) {
     checkCollision();
 }
 
-// Enregistrement des touches enfoncées pour la fluidité optimale
 window.addEventListener("keydown", e => {
     keysPressed[e.key] = true;
-    
     if (gameOver && (e.key === " " || e.key === "Enter")) {
         returnToMenu();
     }
@@ -531,47 +545,37 @@ window.addEventListener("keyup", e => {
     delete keysPressed[e.key];
 });
 
-// Traitement continu des touches enfoncées
 function handlePlayersInput() {
     isJ1Moving = false;
     isJ2Moving = false;
 
-    // Joueur 1
     if (keysPressed["ArrowUp"]) { moveGhost(0, -1); isJ1Moving = true; }
     else if (keysPressed["ArrowDown"]) { moveGhost(0, 1); isJ1Moving = true; }
     else if (keysPressed["ArrowLeft"]) { moveGhost(-1, 0); isJ1Moving = true; }
     else if (keysPressed["ArrowRight"]) { moveGhost(1, 0); isJ1Moving = true; }
     
-    // Joueur 2
     if (keysPressed["z"] || keysPressed["Z"]) { moveGhost2(0, -1); isJ2Moving = true; }
     else if (keysPressed["s"] || keysPressed["S"]) { moveGhost2(0, 1); isJ2Moving = true; }
     else if (keysPressed["q"] || keysPressed["Q"]) { moveGhost2(-1, 0); isJ2Moving = true; }
     else if (keysPressed["d"] || keysPressed["D"]) { moveGhost2(1, 0); isJ2Moving = true; }
 }
 
-// Mobile Tactile - Joueur 1 (Maintien de la touche)
+// Mobile Controls
 document.getElementById("btn-up").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["ArrowUp"] = true; });
 document.getElementById("btn-up").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["ArrowUp"]; });
-
 document.getElementById("btn-down").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["ArrowDown"] = true; });
 document.getElementById("btn-down").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["ArrowDown"]; });
-
 document.getElementById("btn-left").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["ArrowLeft"] = true; });
 document.getElementById("btn-left").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["ArrowLeft"]; });
-
 document.getElementById("btn-right").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["ArrowRight"] = true; });
 document.getElementById("btn-right").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["ArrowRight"]; });
 
-// Mobile Tactile - Joueur 2 (Maintien de la touche)
 document.getElementById("btn-up-p2").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["z"] = true; });
 document.getElementById("btn-up-p2").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["z"]; });
-
 document.getElementById("btn-down-p2").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["s"] = true; });
 document.getElementById("btn-down-p2").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["s"]; });
-
 document.getElementById("btn-left-p2").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["q"] = true; });
 document.getElementById("btn-left-p2").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["q"]; });
-
 document.getElementById("btn-right-p2").addEventListener("touchstart", (e) => { e.preventDefault(); keysPressed["d"] = true; });
 document.getElementById("btn-right-p2").addEventListener("touchend", (e) => { e.preventDefault(); delete keysPressed["d"]; });
 
@@ -589,12 +593,26 @@ function returnToMenu() {
     document.getElementById("instructions").style.display = "none";
 }
 
-// IA de Pac-Man ajustée pour être plus facile à attraper et gérer l'AFK
+// IA DE PAC-MAN MODIFIÉE AVEC CHAMP DE VISION LIMITÉ
 function movePacman() {
     let directions = [{x: 0, y: -1}, {x: 0, y: 1}, {x: -1, y: 0}, {x: 1, y: 0}];
     
-    heatmap[pacman.y][pacman.x] += 1;
+    // On marque l'endroit actuel avec une forte valeur de mémoire
+    heatmap[pacman.y][pacman.x] += 15;
 
+    let isPacmanSuper = pacmanSuperTimer > 0;
+
+    // Détection immédiate du joueur DEVANT Pac-Man (Face-à-face)
+    let faceToFace = false;
+    let targetX = pacman.x + pacman.dirX;
+    let targetY = pacman.y + pacman.dirY;
+
+    if ((isJ1Moving && targetX === ghost.x && targetY === ghost.y) || 
+        (isMultiplayer && isJ2Moving && targetX === ghost2.x && targetY === ghost2.y)) {
+        faceToFace = true;
+    }
+
+    // Filtre les directions valides
     let validDirections = directions.filter(d => {
         let nextX = pacman.x + d.x;
         let nextY = pacman.y + d.y;
@@ -602,47 +620,72 @@ function movePacman() {
     });
 
     if (validDirections.length > 0) {
-        let forwardDirections = validDirections.filter(d => {
-            return !(d.x === -pacman.dirX && d.y === -pacman.dirY);
-        });
-        let choices = forwardDirections.length > 0 ? forwardDirections : validDirections;
+        let choices = validDirections;
+
+        // Si Pacman ne chasse pas et qu'il n'y a pas de face-à-face, on évite le demi-tour spontané
+        if (!isPacmanSuper && !faceToFace) {
+            let forwardDirections = validDirections.filter(d => !(d.x === -pacman.dirX && d.y === -pacman.dirY));
+            if (forwardDirections.length > 0) choices = forwardDirections;
+        }
 
         let bestChoices = [];
-        let minScore = Infinity;
+        let optimalScore = isPacmanSuper ? Infinity : -Infinity; 
 
         choices.forEach(d => {
             let nextX = pacman.x + d.x;
             let nextY = pacman.y + d.y;
             
-            let dangerPenalty = 0;
-
-            // Gestion du Joueur 1
+            // Calcul de la distance réelle par rapport aux joueurs
             let distToJ1 = Math.abs(nextX - ghost.x) + Math.abs(nextY - ghost.y);
-            if (!isJ1Moving && nextX === ghost.x && nextY === ghost.y) {
-                // Si le joueur est AFK, la case du joueur devient un obstacle infranchissable pour Pacman
-                dangerPenalty += 9999;
-            } else if (isJ1Moving && distToJ1 <= 3) { 
-                // Si le joueur bouge, rayon réduit à 3 cases (plus facile à attraper)
-                dangerPenalty += (4 - distToJ1) * 15;
-            }
+            if (!isJ1Moving && nextX === ghost.x && nextY === ghost.y) distToJ1 = 0.1;
 
-            // Gestion du Joueur 2 (si actif)
+            let distToJ2 = Infinity;
             if (isMultiplayer) {
-                let distToJ2 = Math.abs(nextX - ghost2.x) + Math.abs(nextY - ghost2.y);
-                if (!isJ2Moving && nextX === ghost2.x && nextY === ghost2.y) {
-                    dangerPenalty += 9999;
-                } else if (isJ2Moving && distToJ2 <= 3) {
-                    dangerPenalty += (4 - distToJ2) * 15;
-                }
+                distToJ2 = Math.abs(nextX - ghost2.x) + Math.abs(nextY - ghost2.y);
+                if (!isJ2Moving && nextX === ghost2.x && nextY === ghost2.y) distToJ2 = 0.1;
             }
 
-            let totalScore = heatmap[nextY][nextX] + dangerPenalty;
+            let scoreCalculated = 0;
 
-            if (totalScore < minScore) {
-                minScore = totalScore;
-                bestChoices = [d];
-            } else if (totalScore === minScore) {
-                bestChoices.push(d);
+            if (isPacmanSuper) {
+                // EN MODE SUPER : Pac-man traque le joueur le plus proche (indépendamment de la distance de vision)
+                let minPlayerDist = Math.min(distToJ1, distToJ2);
+                scoreCalculated = minPlayerDist * 10 + heatmap[nextY][nextX] * 0.5;
+                if (scoreCalculated < optimalScore) {
+                    optimalScore = scoreCalculated;
+                    bestChoices = [d];
+                } else if (scoreCalculated === optimalScore) {
+                    bestChoices.push(d);
+                }
+            } else {
+                // EN MODE NORMAL : APPLICATION DU CHAMP DE VISION
+                // Si les joueurs sont plus loin que la zone de vision, Pacman "ignore" leur présence (distance infinie fictive)
+                let visibleDistJ1 = distToJ1 <= PACMAN_VISION_RANGE ? distToJ1 : 999;
+                let visibleDistJ2 = distToJ2 <= PACMAN_VISION_RANGE ? distToJ2 : 999;
+                let minVisibleDist = Math.min(visibleDistJ1, visibleDistJ2);
+
+                let biasBille = 0;
+                if (superBille.existe) {
+                    let distToBille = Math.abs(nextX - superBille.x) + Math.abs(nextY - superBille.y);
+                    if (distToBille < 8) {
+                        biasBille = (8 - distToBille) * 15; 
+                    }
+                }
+                
+                if (minVisibleDist === 999) {
+                    // Les joueurs sont trop loin : Pac-Man explore en évitant sa heatmap et attiré par la bille jane
+                    scoreCalculated = - (heatmap[nextY][nextX] * 3) + biasBille;
+                } else {
+                    // Un joueur est proche : Mode panique / fuite actif !
+                    scoreCalculated = (minVisibleDist * 25) - (heatmap[nextY][nextX] * 2) + biasBille;
+                }
+                
+                if (scoreCalculated > optimalScore) {
+                    optimalScore = scoreCalculated;
+                    bestChoices = [d];
+                } else if (scoreCalculated === optimalScore) {
+                    bestChoices.push(d);
+                }
             }
         });
 
@@ -660,15 +703,30 @@ function movePacman() {
         pacman.x = nextX;
         pacman.y = nextY;
     }
+
+    // Pac-Man mange la Super Bille Jane ?
+    if (superBille.existe && pacman.x === superBille.x && pacman.y === superBille.y) {
+        superBille.existe = false; 
+        pacmanSuperTimer = 5 * 60; 
+    }
+
     checkCollision();
 }
 
 function checkCollision() {
-    if ((ghost.x === pacman.x && ghost.y === pacman.y) || 
-        (isMultiplayer && ghost2.x === pacman.x && ghost2.y === pacman.y)) {
-        score += 100 * currentLevel;
-        document.getElementById("score-display").innerText = score;
-        gameOver = true;
+    let touchedJ1 = (ghost.x === pacman.x && ghost.y === pacman.y);
+    let touchedJ2 = (isMultiplayer && ghost2.x === pacman.x && ghost2.y === pacman.y);
+
+    if (touchedJ1 || touchedJ2) {
+        if (pacmanSuperTimer > 0) {
+            playerKilledByPacman = true;
+            gameOver = true;
+        } else {
+            score += 100 * currentLevel;
+            document.getElementById("score-display").innerText = score;
+            playerKilledByPacman = false;
+            gameOver = true;
+        }
     }
 }
 
@@ -676,6 +734,21 @@ function draw() {
     if (!gameRunning) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Diminuer le timer du pouvoir de Pac-man à chaque frame
+    if (pacmanSuperTimer > 0) {
+        pacmanSuperTimer--;
+    }
+
+    // Évaporation lente de la mémoire (heatmap) pour éviter de bloquer l'IA à long terme
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (heatmap[r][c] > 0) {
+                heatmap[r][c] -= 0.02; 
+                if (heatmap[r][c] < 0) heatmap[r][c] = 0;
+            }
+        }
+    }
 
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
@@ -686,8 +759,23 @@ function draw() {
         }
     }
 
-    // Dessiner Pac-Man
-    ctx.fillStyle = "yellow";
+    // Dessiner la Super Bille Jane si elle existe encore
+    if (superBille.existe) {
+        ctx.fillStyle = "#ffcc00";
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "#ffcc00";
+        ctx.beginPath();
+        ctx.arc(superBille.x * tileSize + tileSize/2, superBille.y * tileSize + tileSize/2, tileSize/4, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.shadowBlur = 0; 
+    }
+
+    // Dessiner Pac-Man (il clignote s'il a le super pouvoir)
+    if (pacmanSuperTimer > 0 && Math.floor(pacmanSuperTimer / 5) % 2 === 0) {
+        ctx.fillStyle = "#ff3333"; 
+    } else {
+        ctx.fillStyle = "yellow";
+    }
     ctx.beginPath();
     ctx.arc(pacman.x * tileSize + tileSize/2, pacman.y * tileSize + tileSize/2, tileSize/2 - 3, 0.2 * Math.PI, 1.8 * Math.PI);
     ctx.lineTo(pacman.x * tileSize + tileSize/2, pacman.y * tileSize + tileSize/2);
@@ -705,7 +793,7 @@ function draw() {
     ctx.fillRect(ghost.x * tileSize + (tileSize*0.22), ghost.y * tileSize + (tileSize*0.28), tileSize*0.16, tileSize*0.16);
     ctx.fillRect(ghost.x * tileSize + (tileSize*0.62), ghost.y * tileSize + (tileSize*0.28), tileSize*0.16, tileSize*0.16);
 
-    // Dessiner le Fantôme 2 (Bleu) si le mode multijoueur est actif
+    // Dessiner le Fantôme 2 (Bleu)
     if (isMultiplayer) {
         ctx.fillStyle = ghost2.color;
         ctx.beginPath();
@@ -723,10 +811,16 @@ function draw() {
         ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        ctx.fillStyle = "lime";
         ctx.font = "bold 24px 'Courier New'";
         ctx.textAlign = "center";
-        ctx.fillText("BIEN JOUÉ !", canvas.width / 2, canvas.height / 2 - 20);
+        
+        if (playerKilledByPacman) {
+            ctx.fillStyle = "red";
+            ctx.fillText("PAC-MAN VOUS A TUÉ !", canvas.width / 2, canvas.height / 2 - 20);
+        } else {
+            ctx.fillStyle = "lime";
+            ctx.fillText("BIEN JOUÉ !", canvas.width / 2, canvas.height / 2 - 20);
+        }
         
         ctx.fillStyle = "white";
         ctx.font = "16px 'Courier New'";
@@ -735,7 +829,6 @@ function draw() {
         return;
     }
 
-    // Gestion de l'input fluide des fantômes
     ghostMoveTimer++;
     if (ghostMoveTimer >= ghostMoveCooldown) {
         handlePlayersInput();
