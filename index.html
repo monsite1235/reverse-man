@@ -208,22 +208,22 @@
             display: block;
         }
 
-        /* MANETTES VIRTUELLES MOBILE */
+        /* MANETTES VIRTUELLES MOBILE MODIFIÉES POUR ÉVITER LE CHEVAUCHEMENT */
         .mobile-pad {
             display: none;
             position: absolute;
-            bottom: 30px;
+            bottom: 5%; /* Utilisation de % pour s'adapter à la hauteur de l'écran */
             width: 150px;
             height: 150px;
             z-index: 8;
         }
-        /* Position joueur 1 (Bas gauche si multi, sinon centré via JS) */
+        /* Position joueur 1 (Bas gauche) */
         #mobile-controls-p1 {
-            left: 30px;
+            left: 20px;
         }
         /* Position joueur 2 (Bas droite) */
         #mobile-controls-p2 {
-            right: 30px;
+            right: 20px;
         }
         .dpad-btn {
             position: absolute;
@@ -244,19 +244,40 @@
             background-color: rgba(255, 0, 0, 0.8);
         }
         
-        /* Ajustements des boutons à l'intérieur du pad de 150px */
+        /* Positionnement interne des touches */
         .btn-up    { top: 0; left: 52px; }
         .btn-left  { top: 52px; left: 0; }
         .btn-right { top: 52px; right: 0; }
         .btn-down  { bottom: 0; left: 52px; }
 
-        /* Changement de couleur de bordure pour différencier le J2 */
+        /* Changement de couleur pour J2 */
         #mobile-controls-p2 .dpad-btn {
             border-color: #00ffff;
             background-color: rgba(13, 13, 92, 0.6);
         }
         #mobile-controls-p2 .dpad-btn:active {
             background-color: rgba(0, 255, 255, 0.8);
+        }
+
+        /* Amélioration de l'espace sur les petits écrans mobiles (mode paysage recommandé pour le 2J) */
+        @media (max-width: 767px) {
+            .mobile-pad {
+                width: 120px;
+                height: 120px;
+                bottom: 3%;
+            }
+            #mobile-controls-p1 { left: 10px; }
+            #mobile-controls-p2 { right: 10px; }
+            .dpad-btn {
+                width: 38px;
+                height: 38px;
+                font-size: 16px;
+                border-width: 2px;
+            }
+            .btn-up    { top: 0; left: 41px; }
+            .btn-left  { top: 41px; left: 0; }
+            .btn-right { top: 41px; right: 0; }
+            .btn-down  { bottom: 0; left: 41px; }
         }
     </style>
 </head>
@@ -446,7 +467,7 @@ function startGame(level) {
         let pad1 = document.getElementById("mobile-controls-p1");
         pad1.style.display = "block";
         if (isMultiplayer) {
-            pad1.style.left = "30px";
+            pad1.style.left = "20px";
             pad1.style.transform = "none";
             document.getElementById("mobile-controls-p2").style.display = "block";
         } else {
